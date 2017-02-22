@@ -83,6 +83,12 @@ public:
     {
         float moveRight=direction_x*speed*ticks;
         float moveUp=direction_y*speed*ticks;
+        if(position_y+moveUp>=Y_MAX-0.2f-height){
+            moveUp=Y_MAX-0.2f-height-position_y;
+        }
+        else if(position_y+moveUp<=Y_MIN+0.2f+height){
+            moveUp=Y_MIN+0.2f+height-position_y;
+        }
         position_y+=moveUp;
         position_x+=moveRight;
         top+=moveUp;
@@ -98,7 +104,7 @@ public:
     };
     bool outOfScreen()
     {
-        return (position_x>X_MAX || position_x<X_MIN);
+        return (position_x>X_MAX || position_x<X_MIN || position_y<Y_MIN || position_y>Y_MAX);
     };
     void setPosition(float newPositionX, float newPositionY)
     {
@@ -268,6 +274,15 @@ int main(int argc, char *argv[])
         glVertexAttribPointer(program.positionAttribute, 2, GL_FLOAT, false, 0, ballVertices);
         ball.Draw(program);
         
+//        if(!player1.outOfScreen())
+//        {
+//            player1.Move(elapsed);
+//        }
+//        else
+//        {
+//            if(player1.position_y>Y_MAX){player1.setPosition(-3.35f, 0.0f);}
+//            else if(player1.position_y<Y_MIN){player1.setPosition(3.35f, 0.0f);}
+//        }
         player1.Move(elapsed);
         program.setModelMatrix(player1.modelMatrix);
         glVertexAttribPointer(program.positionAttribute, 2, GL_FLOAT, false, 0, player1Vertices);
