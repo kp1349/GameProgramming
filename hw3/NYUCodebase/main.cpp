@@ -115,7 +115,7 @@ void Setup() // CREATE EVERYTHING
     {
         bullets[i] = Entity(0.2f, 1.0f, 0.0f, 0.0f); // laser
         bullets[i].addTexture("sheet.png");
-        bullets[i].CalcTextureCoords(1024, 1024, 9, 54, 858, 230);a
+        bullets[i].CalcTextureCoords(1024, 1024, 9, 54, 858, 230);
         bullets[i].changeSize(0.5f);
         bullets[i].Active=false;
     }
