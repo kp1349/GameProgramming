@@ -23,10 +23,10 @@
 
 
 // 60 FPS (1.0f/60.0f)
-#define FIXED_TIMESTEP 0.1f // 10 frames per second due to my CPU
+#define FIXED_TIMESTEP 0.05f // 10 frames per second due to my CPU
 #define MAX_TIMESTEPS 6
 
-#define MAX_BULLETS 10
+#define MAX_BULLETS 4
 int bulletIndex = 0;
 
 
@@ -62,7 +62,9 @@ void shootBullet() {
     bullets[bulletIndex].position.y=player1.top+bullets[bulletIndex].length.y;
     bulletIndex++;
     if(bulletIndex > MAX_BULLETS-1) {
+        bullets[0].Active=false;
         bulletIndex = 0;
+        
     }
 }
 
@@ -135,12 +137,15 @@ void Update(float elapsed) // UPDATE MOVEMENT AND POSTION
             {
                 for (int j=0; j<enemies[i].size(); j++) // RUN ON EACH ENEMY
                 {
-                    for(int i=0; i < MAX_BULLETS; i++)
+                    if (enemies[i][j].Active)
                     {
-                        if (bullets[i].Active && bullets[i].collisionDetect(enemies[i][j])) // CAUSES THE GAME TO CRASH
+                        for(int k=0; k < MAX_BULLETS; k++)
                         {
-                            bullets[i].Active=false;
+                            if (bullets[k].Active && bullets[k].collisionDetect(enemies[i][j])) // CAUSES THE GAME TO CRASH
+                            {
+                            bullets[k].Active=false;
                             enemies[i][j].Active=false;
+                            }
                         }
                     }
                     if (invert){enemies[i][j].direction.x*=-1.0f;}
@@ -259,33 +264,30 @@ int main(int argc, char *argv[])
                         break;
                 }
             }
-            
-            float ticks = (float)SDL_GetTicks()/1000.0f;
-            float elapsed = ticks - lastFrameTicks;
-            lastFrameTicks = ticks;
-            
-            float fixedElapsed = elapsed;
-            if(fixedElapsed > FIXED_TIMESTEP * MAX_TIMESTEPS) {
-                fixedElapsed = FIXED_TIMESTEP * MAX_TIMESTEPS;
-            }
-            while (fixedElapsed >= FIXED_TIMESTEP ) {
-                fixedElapsed -= FIXED_TIMESTEP;
-                Update(FIXED_TIMESTEP);
-            }
-            Update(FIXED_TIMESTEP);
-            
-            glClear(GL_COLOR_BUFFER_BIT);
-            
-            program.setProjectionMatrix(projectionMatrix);
-            program.setViewMatrix(viewMatrix);
-            
-            Render(program);
-//            DrawText(program, texture, "hi", 1.0f, 0.0f); // DECIDED NOT TO USE IT, AS IT CAN ONLY BE ON ONE LINE
-            
-            
-            
-            SDL_GL_SwapWindow(displayWindow);
         }
+        float ticks = (float)SDL_GetTicks()/1000.0f;
+        float elapsed = ticks - lastFrameTicks;
+        lastFrameTicks = ticks;
+        
+        float fixedElapsed = elapsed;
+        if(fixedElapsed > FIXED_TIMESTEP * MAX_TIMESTEPS) {
+            fixedElapsed = FIXED_TIMESTEP * MAX_TIMESTEPS;
+        }
+        while (fixedElapsed >= FIXED_TIMESTEP ) {
+            fixedElapsed -= FIXED_TIMESTEP;
+            Update(FIXED_TIMESTEP);
+        }
+        Update(FIXED_TIMESTEP);
+        
+        glClear(GL_COLOR_BUFFER_BIT);
+        
+        program.setProjectionMatrix(projectionMatrix);
+        program.setViewMatrix(viewMatrix);
+        
+        Render(program);
+        //            DrawText(program, texture, "hi", 1.0f, 0.0f); // DECIDED NOT TO USE IT, AS IT CAN ONLY BE ON ONE LINE
+        
+        SDL_GL_SwapWindow(displayWindow);
     }
     
     SDL_Quit();

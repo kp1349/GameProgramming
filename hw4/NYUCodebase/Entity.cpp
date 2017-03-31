@@ -51,18 +51,18 @@ Entity::Entity(float Width, float Height, float x, float y)
     textureLeft=0.0f;
     textureRight=1.0f;
     
-    direction.x=0.0f;
-    direction.y=0.0f;
+    velocity.x=0.0f;
+    velocity.y=0.0f;
     acceleration.x=0.0f;
     acceleration.y=0.0f;
-    gravity=2.0f;
+    gravity=0.0f;
     friction.x=0.0f;
     friction.y=0.0f;
+    ratio=1.0f;
     
     Debug=true;
     Active=true;
-
-    updateAll();
+    Static=true;
 }
 
 void Entity::updateAll()
@@ -75,86 +75,100 @@ void Entity::updateAll()
 
 void Entity::Draw(ShaderProgram &program)
 {
-    program.setModelMatrix(modelMatrix);
-    glBindTexture(GL_TEXTURE_2D, texture);
-    
-    float vertices[] =
+    if(Active)
     {
-        right, top,
-        left, top,
-        left, bottom,
-        right, top,
-        left, bottom,
-        right, bottom
-    };
-    
-    float textureVertices[] =
-    {
-        textureRight, textureTop,
-        textureLeft, textureTop,
-        textureLeft, textureBottom,
-        textureRight, textureTop,
-        textureLeft, textureBottom,
-        textureRight, textureBottom
-    };
-    
-//    float textureVertices[] =
-//    {
-//        spriteSheet.Left, spriteSheet.Top,
-//        spriteSheet.Right, spriteSheet.Top,
-//        spriteSheet.Right, spriteSheet.Bottom,
-//        spriteSheet.Left, spriteSheet.Top,
-//        spriteSheet.Right, spriteSheet.Bottom,
-//        spriteSheet.Left, spriteSheet.Bottom
-//    };
-    glVertexAttribPointer(program.positionAttribute, 2, GL_FLOAT, false, 0, vertices);
-    glEnableVertexAttribArray(program.positionAttribute);
-    glVertexAttribPointer(program.texCoordAttribute, 2, GL_FLOAT, false, 0, textureVertices);
-    glEnableVertexAttribArray(program.texCoordAttribute);
-    glDrawArrays(GL_TRIANGLES, 0, 6);
-    glDisableVertexAttribArray(program.positionAttribute);
-    glDisableVertexAttribArray(program.texCoordAttribute);
+        program.setModelMatrix(modelMatrix);
+        glBindTexture(GL_TEXTURE_2D, texture);
+        float vertices[] =
+        {
+            length.x, length.y,
+            (-1.0f*length.x), length.y,
+            (-1.0f*length.x), (-1.0f*length.y),
+            length.x, length.y,
+            (-1.0f*length.x), (-1.0f*length.y),
+            length.x, (-1.0f*length.y)
+        };
+        
+        float textureVertices[] =
+        {
+            textureRight, textureTop,
+            textureLeft, textureTop,
+            textureLeft, textureBottom,
+            textureRight, textureTop,
+            textureLeft, textureBottom,
+            textureRight, textureBottom
+        };
+        modelMatrix.identity();
+        modelMatrix.Translate(position.x, position.y, 0.0f);
+        glVertexAttribPointer(program.positionAttribute, 2, GL_FLOAT, false, 0, vertices);
+        glEnableVertexAttribArray(program.positionAttribute);
+        glVertexAttribPointer(program.texCoordAttribute, 2, GL_FLOAT, false, 0, textureVertices);
+        glEnableVertexAttribArray(program.texCoordAttribute);
+        glDrawArrays(GL_TRIANGLES, 0, 6);
+        glDisableVertexAttribArray(program.positionAttribute);
+        glDisableVertexAttribArray(program.texCoordAttribute);
+    }
 }
 
 void Entity::CalcTextureCoords(int totalWidth, int totalHeight, int Width, int Height, int Left, int Top, int LRoffset, int UDoffset)
 {
     textureTop=(float)(Top+UDoffset)/totalHeight;
-//    std::cout<<textureTop<<std::endl;
     textureBottom=(float)(Top+Height-UDoffset)/totalHeight;
-//    std::cout<<textureBottom<<std::endl;
     textureLeft=(float)(Left+LRoffset)/totalWidth;
-//    std::cout<<textureLeft<<std::endl;
     textureRight=(float)(Left+Width-LRoffset)/totalWidth;
-//    std::cout<<textureRight<<std::endl;
-    Width-=2*LRoffset;
-    Height-=2*UDoffset;
-    float ratio=(float)Width/Height;
+    ratio=(float)Width/Height;
     length.x*=ratio;
-    updateAll();
 }
 
 void Entity::changeSize(float changeByThisMuch)
 {
     length.x*=changeByThisMuch;
     length.y*=changeByThisMuch;
-    updateAll();
+    // updateAll();
 }
 
 void Entity::Move(float ticks)
 {
-    direction.x = lerp(direction.x, 0.0f, ticks*friction.x);
-    direction.y = lerp(direction.y, 0.0f, ticks*friction.x);
-    direction.x += acceleration.x*ticks;
-    direction.y += acceleration.y*ticks;
+    velocity.x = lerp(velocity.x, 0.0f, ticks*friction.x);
+    velocity.y = lerp(velocity.y, 0.0f, ticks*friction.y);
+    velocity.x += acceleration.x*ticks;
+    velocity.y += acceleration.y*ticks;
     acceleration.x=0;
     acceleration.x=0;
-    float moveRight=direction.x*ticks;
-    float moveUp=direction.y*ticks;
-    position.x+=moveRight;
+    float moveRight=velocity.x*ticks;
+    float moveUp=velocity.y*ticks;
     position.y+=moveUp;
-    updateAll();
-//    if(Debug){std::cout<<"new position x: "+std::to_string(position.x)+"\nnew position y: "+std::to_string(position.y)+'\n';}
+    position.x+=moveRight;
 }
+
+void Entity::MoveX(float ticks)
+{
+    velocity.x = lerp(velocity.x, 0.0f, ticks*friction.x);
+    velocity.x += acceleration.x*ticks;
+    acceleration.x=0.0f;
+    position.x+=(velocity.x*ticks);
+}
+
+void Entity::MoveY(float ticks)
+{
+    velocity.y += acceleration.y*ticks + gravity;
+    velocity.y = lerp(velocity.y, 0.0f, ticks*friction.y);
+    acceleration.y=0.0f;
+    position.y+=(velocity.y*ticks);
+}
+
+float Entity::getYPenetration(Entity object)
+{
+    float penetration = fabs((position.y - object.position.y) - length.y - object.length.y);
+    return penetration;
+}
+
+float Entity::getXPenetration(Entity object)
+{
+    float penetration = fabs((position.x - object.position.x) - length.x - object.length.x);
+    return penetration;
+}
+
 
 std::vector<Entity> Entity::printText(Vector2 Position, std::string line, float changeSize)
 {
@@ -166,13 +180,11 @@ std::vector<Entity> Entity::printText(Vector2 Position, std::string line, float 
     int height=32;
     float increment = (changeSize*1.0f);
     increment-=increment*((float)LRoffset/width);
-//    float start = -3.55f+(increment/2);
     float current = Position.x;
     for (int i=0; i<line.length(); i++) {
         entities.push_back(Entity(1.0f, 1.0f, current, Position.y));
         current+=increment;
         entities[i].addTexture("font1.png");
-//        std::cout<<line[i]<<std::endl;
         float x,y;
         switch (line[i]) {
             case 'A':
@@ -298,13 +310,22 @@ float Entity::lerp(float v0, float v1, float t) {
     return (1.0-t)*v0 + t*v1;
 }
 
-bool Entity::collisionDetect(Entity object)    // detect a collision and change direction accordingly
+bool Entity::collisionDetect(Entity object)    // detect a collision and change velocity accordingly
 {
     if (Active && object.Active)
     {
-        return (top>object.bottom && bottom<object.top && left<object.right && right>object.left);
+        return ((position.y+length.y)>(object.position.y-object.length.y) && (position.y-length.y)<(object.position.y+object.length.y) && (position.x-length.x)<(object.position.x+object.length.x) && (position.x+length.x)>(object.position.x-object.length.x));
     }
     else return false;
-    
+}
+
+
+void Entity::ResetCollisions()
+{
+    CollidedTop=false;
+    CollidedBottom=false;
+    CollidedLeft=false;
+    CollidedRight=false;
 };
+
 
