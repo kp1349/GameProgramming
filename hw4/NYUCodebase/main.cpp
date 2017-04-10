@@ -18,21 +18,16 @@
 #define RESOURCE_FOLDER "NYUCodebase.app/Contents/Resources/"
 #endif
 
-//NOTES:
-// 'A' and 'D' keys control p1(left), 'SPACE' to jump
-// pickup the key and get to the door to make it 'unlock' and disappear
-
-
 // 60 FPS (1.0f/60.0f)
-#define FIXED_TIMESTEP 0.05f // 10 frames per second due to my CPU
+#define FIXED_TIMESTEP 0.01666f
 #define MAX_TIMESTEPS 6
 
 bool Debug=false;
 bool Jumping=false;
 bool hasKey=false;
 
-const int WIDTH_PIXELS=640;
-const int HEIGHT_PIXELS=360;
+const int WIDTH_PIXELS=640*1;
+const int HEIGHT_PIXELS=360*1;
 const float X_MIN=-3.55f;
 const float X_MAX=3.55f;
 const float Y_MIN=-2.0f;
@@ -43,199 +38,237 @@ const float Z_MAX=1.0f;
 
 SDL_Window* displayWindow;
 
-void makeGrassLeft(Entity &object)
-{
-    object.addTexture("tiles_spritesheet.png");
-    object.CalcTextureCoords(1024, 1024, 70, 70, 504, 648);
-    object.eType=ENTITY_GRASS;
-}
-
-void makeGrassRight(Entity &object)
-{
-    object.addTexture("tiles_spritesheet.png");
-    object.CalcTextureCoords(1024, 1024, 70, 70, 504, 504);
-    object.eType=ENTITY_GRASS;
-}
-
-void makeGrassMid(Entity &object)
-{
-    object.addTexture("tiles_spritesheet.png");
-    object.CalcTextureCoords(1024, 1024, 70, 70, 504, 576);
-    object.eType=ENTITY_GRASS;
-}
-
-void makeHalfGrass(Entity &object)
-{
-    object.addTexture("tiles_spritesheet.png");
-    object.CalcTextureCoords(1024, 1024, 70, 35, 576, 432);
-    object.eType=ENTITY_GRASS;
-}
-
 std::vector<Entity> objects; //ALL THE ENTITIES
 
 Matrix projectionMatrix;
 Matrix modelMatrix;
 Matrix viewMatrix;
 
+bool outOfUD(Entity object)
+{
+    return ((object.position.y + object.length.y) > Y_MAX) || ((object.position.y - object.length.y) < Y_MIN);
+}
+
+bool outOfLR(Entity object)
+{
+    return ((object.position.x + object.length.x) > X_MAX) || ((object.position.x - object.length.x) < X_MIN);
+}
+
+///*
+bool penetrationSort(const Vector &p1, const Vector &p2) {
+    return p1.length() < p2.length();
+}
+
+bool testSATSeparationForEdge(float edgeX, float edgeY, const std::vector<Vector> &points1, const std::vector<Vector> &points2, Vector &penetration) {
+    float normalX = -edgeY;
+    float normalY = edgeX;
+    float len = sqrtf(normalX*normalX + normalY*normalY);
+    normalX /= len;
+    normalY /= len;
+    
+    std::vector<float> e1Projected;
+    std::vector<float> e2Projected;
+    
+    for(int i=0; i < points1.size(); i++) {
+        e1Projected.push_back(points1[i].x * normalX + points1[i].y * normalY);
+    }
+    for(int i=0; i < points2.size(); i++) {
+        e2Projected.push_back(points2[i].x * normalX + points2[i].y * normalY);
+    }
+    
+    std::sort(e1Projected.begin(), e1Projected.end());
+    std::sort(e2Projected.begin(), e2Projected.end());
+    
+    float e1Min = e1Projected[0];
+    float e1Max = e1Projected[e1Projected.size()-1];
+    float e2Min = e2Projected[0];
+    float e2Max = e2Projected[e2Projected.size()-1];
+    
+    float e1Width = fabs(e1Max-e1Min);
+    float e2Width = fabs(e2Max-e2Min);
+    float e1Center = e1Min + (e1Width/2.0);
+    float e2Center = e2Min + (e2Width/2.0);
+    float dist = fabs(e1Center-e2Center);
+    float p = dist - ((e1Width+e2Width)/2.0);
+    
+    if(p >= 0) {
+        return false;
+    }
+    
+    float penetrationMin1 = e1Max - e2Min;
+    float penetrationMin2 = e2Max - e1Min;
+    
+    float penetrationAmount = penetrationMin1;
+    if(penetrationMin2 < penetrationAmount) {
+        penetrationAmount = penetrationMin2;
+    }
+    
+    penetration.x = normalX * penetrationAmount;
+    penetration.y = normalY * penetrationAmount;
+    
+    return true;
+}
+
+bool checkSATCollision(const std::vector<Vector> &e1Points, const std::vector<Vector> &e2Points, Vector &penetration) {
+    std::vector<Vector> penetrations;
+    for(int i=0; i < e1Points.size(); i++) {
+        float edgeX, edgeY;
+        
+        if(i == e1Points.size()-1) {
+            edgeX = e1Points[0].x - e1Points[i].x;
+            edgeY = e1Points[0].y - e1Points[i].y;
+        } else {
+            edgeX = e1Points[i+1].x - e1Points[i].x;
+            edgeY = e1Points[i+1].y - e1Points[i].y;
+        }
+        Vector penetration;
+        bool result = testSATSeparationForEdge(edgeX, edgeY, e1Points, e2Points, penetration);
+        if(!result) {
+            return false;
+        }
+        penetrations.push_back(penetration);
+    }
+    for(int i=0; i < e2Points.size(); i++) {
+        float edgeX, edgeY;
+        
+        if(i == e2Points.size()-1) {
+            edgeX = e2Points[0].x - e2Points[i].x;
+            edgeY = e2Points[0].y - e2Points[i].y;
+        } else {
+            edgeX = e2Points[i+1].x - e2Points[i].x;
+            edgeY = e2Points[i+1].y - e2Points[i].y;
+        }
+        Vector penetration;
+        bool result = testSATSeparationForEdge(edgeX, edgeY, e1Points, e2Points, penetration);
+        
+        if(!result) {
+            return false;
+        }
+        penetrations.push_back(penetration);
+    }
+    
+    
+    std::sort(penetrations.begin(), penetrations.end(), penetrationSort);
+    penetration = penetrations[0];
+    
+    Vector e1Center;
+    for(int i=0; i < e1Points.size(); i++) {
+        e1Center.x += e1Points[i].x;
+        e1Center.y += e1Points[i].y;
+    }
+    e1Center.x /= (float)e1Points.size();
+    e1Center.y /= (float)e1Points.size();
+    
+    Vector e2Center;
+    for(int i=0; i < e2Points.size(); i++) {
+        e2Center.x += e2Points[i].x;
+        e2Center.y += e2Points[i].y;
+    }
+    e2Center.x /= (float)e2Points.size();
+    e2Center.y /= (float)e2Points.size();
+    
+    Vector ba;
+    ba.x = e1Center.x - e2Center.x;
+    ba.y = e1Center.y - e2Center.y;
+    
+    if( (penetration.x * ba.x) + (penetration.y * ba.y) < 0.0f) {
+        penetration.x *= -1.0f;
+        penetration.y *= -1.0f;
+    }
+    
+    return true;
+}
+//*/
+
+
+
 void Setup() // CREATE EVERYTHING
 {
-    //PLAYER
-    objects.push_back(Entity(0.5f, 0.5f, -1.0f, 1.5f));
-    objects[0].Static=false;
-    objects[0].eType=ENTITY_PLAYER;
-    objects[0].addTexture("p3_stand.png");
-    objects[0].CalcTextureCoords(66, 92, 66, 92, 0, 0);
-    objects[0].gravity=-0.1f;
-    objects[0].friction.x=0.25f;
-    
-    //DOOR
-    objects.push_back(Entity(0.5, 0.5, 5.95f, -0.5f));
-    objects[1].Static=true; //STATIC
-    objects[1].eType=ENTITY_DOOR;
-    objects[1].addTexture("tiles_spritesheet.png");
-    objects[1].CalcTextureCoords(1024, 1024, 70, 69, 72, 1);
-    
-    //KEY
-    objects.push_back(Entity(0.25, 0.25, 2.6f, 1.0f));
-    objects[2].Static=false; //DYNAMIC
-    objects[2].eType=ENTITY_KEY;
-    objects[2].addTexture("keyRed.png");
-    objects[2].CalcTextureCoords(70, 70, 60, 38, 5, 13);
-    objects[2].gravity=-0.1f;
-    objects[2].velocity.x=0.2f;
-    
-    //GRASS
-    for (int i=0; i<24; i++)
+    objects.push_back(Entity()); // BLOCK 1
+    objects[0].position.x=-3.0f;
+    objects[0].position.y=0.5f;
+    objects[0].velocity.x=0.5f;
+    objects[0].velocity.y=-0.5f;
+    objects.push_back(Entity()); // BLOCK 2
+    objects[1].position.y=-1.5f;
+    objects[1].position.x=1.0f;
+    objects[1].velocity.x=-0.5f;
+    objects[1].velocity.y=0.5f;
+    objects.push_back(Entity()); // BLOCK 3
+    objects[2].position.x=3.0f;
+    objects[2].position.y=-0.5f;
+    objects[2].velocity.x=0.5f;
+    objects[2].velocity.y=-0.5f;
+    objects.push_back(Entity()); // EXTRA BLOCK
+    for (int i = 0; i < objects.size(); i++)
     {
-        objects.push_back(Entity(0.5f, 0.5f, (-3.55f+(i*0.5f)), -1.0f));
-        switch (i)
-        {
-            case 0:
-                makeGrassLeft(objects[(i+3)]);
-                break;
-            case 23:
-                makeGrassRight(objects[(i+3)]);
-                break;
-            default:
-                makeGrassMid(objects[(i+3)]);
-                break;
-        }
+        // TO CREATE ANY KIND OF RECTANGLE
+        objects[i].scale.x=1.0f;
+        objects[i].scale.y=2.0f;
     }
-    for (int i=0; i<5; i++) {
-        objects.push_back(Entity(0.20f, 0.20f, 2.0f+(0.4f*i), 0.5f));
-        makeHalfGrass(objects[(27+i)]);
-    }
+    
 }
 
 void Update(float elapsed) // UPDATE MOVEMENT AND POSTION
 {
+    for (int i=0; i<objects.size(); i++) {
+        objects[i].Move(elapsed);
+        
+        if(outOfLR(objects[i])){objects[i].velocity.x*=-1.0f;} // LEFT/RIGHT
+        if(outOfUD(objects[i])){objects[i].velocity.y*=-1.0f;} // UP/DOWN
+        objects[i].rotationAngle+=(3.14159265/128); // ROTATION
+        objects[i].setVertices(); // SETUP FOR SAT COLLISION CHECK
+    }
+    
+    Vector penetration = Vector();
+
     for (int i = 0; i < objects.size(); i++)
     {
-        if(!objects[i].Static)
+        for (int j = 0; j < objects.size(); j++)
         {
-            objects[i].MoveY(elapsed);
-            for (int j=0; j<objects.size(); j++)
+            if (i!=j) // DON'T CHECK AGAINST SAME ENTITY
             {
-                if(i==j)
+                if(checkSATCollision(objects[i].vertices, objects[j].vertices, penetration))
                 {
-                    continue;
-                }
-                else if(objects[i].collisionDetect(objects[j])) 
-                {
-                    if(objects[j].eType==ENTITY_GRASS)
+                    if (objects[i].position.x < objects[j].position.x)
                     {
-                        if(objects[i].velocity.y<0)
-                        {
-                            objects[i].position.y+=(objects[i].getYPenetration(objects[j]))+0.01f;
-                            objects[i].CollidedBottom=true;
-                            Jumping=false;
-                        }
-                        else
-                        {
-                            objects[i].position.y-=(objects[i].getYPenetration(objects[j]))-0.1f;
-                            objects[i].CollidedTop=true;
-                        }
-                        objects[i].velocity.y=0.0f;
+                        objects[i].position.x-=0.01f;
+                        objects[j].position.x+=0.01f;
+                        objects[i].velocity.x-=cosf(penetration.x);
+                        objects[j].velocity.x+=cosf(penetration.x);
                     }
-                    else if(objects[j].eType==ENTITY_KEY)
+                    else{
+                        objects[j].position.x-=0.01f;
+                        objects[i].position.x+=0.01f;
+                        objects[j].velocity.x-=cosf(penetration.x);
+                        objects[i].velocity.x+=cosf(penetration.x);
+                    }
+                    if (objects[i].position.y < objects[j].position.y)
                     {
-                        hasKey=true;
-                        objects[j].Active=false;
+                        objects[i].position.y-=0.01f;
+                        objects[j].position.y+=0.01f;
+                        objects[i].velocity.y-=sinf(penetration.y);
+                        objects[j].velocity.y+=sinf(penetration.y);
                     }
-                    else if(objects[j].eType==ENTITY_PLAYER)
-                    {
-                        hasKey=true;
-                        objects[i].Active=false;   
+                    else{
+                        objects[j].position.y-=0.01f;
+                        objects[i].position.y+=0.01f;
+                        objects[j].velocity.y-=sinf(penetration.y);
+                        objects[i].velocity.y+=sinf(penetration.y);
                     }
-                    else if(objects[j].eType==ENTITY_DOOR && hasKey)
-                    {
-                        objects[j].Active=false;
-                    }
-                }
-            }
-            objects[i].MoveX(elapsed);
-            for (int j=0; j<objects.size(); j++)
-            {
-                if(i==j)
-                {
-                    continue;
-                }
-                else if(objects[i].collisionDetect(objects[j])) 
-                {
-                    if(objects[j].eType==ENTITY_GRASS)
-                    {
-                        if(objects[i].velocity.x>0)
-                        {
-                            objects[i].position.x+=(objects[i].getXPenetration(objects[j]))+0.01f;
-                            objects[i].CollidedRight=true;
-                        }
-                        else
-                        {
-                            objects[i].position.x-=(objects[i].getXPenetration(objects[j]))+0.01f;
-                            objects[i].CollidedLeft=true;
-                        }
-                    }
-                    else if(objects[j].eType==ENTITY_KEY)
-                    {
-                        hasKey=true;
-                        objects[j].Active=false;
-                    }
-                    else if(objects[j].eType==ENTITY_PLAYER)
-                    {
-                        hasKey=true;
-                        objects[i].Active=false;   
-                    }
-                    else if(objects[j].eType==ENTITY_DOOR && hasKey)
-                    {
-                        objects[j].Active=false;
-                    }
-                }
-            }
-            if (objects[i].eType==ENTITY_PLAYER)
-            {
-                if(objects[i].position.x>-3.0f && objects[i].position.x<6.0f)
-                {
-                    viewMatrix.setPosition(-objects[i].position.x, 0.0f, 0.0f);
-                }
-            }
-            if (objects[i].eType==ENTITY_KEY)
-            {
-                if (objects[i].position.x<-2.0f || objects[i].position.x>4.0f)
-                {
-                    objects[i].velocity.x*=-1.0f;
                 }
             }
         }
+        
     }
 }
 
 void Render(ShaderProgram &program)
 {
-    for (int i=objects.size()-1; i>-1; i--) //SO THAT THE PLAYER IS RENDERED IN FRONT
+    for (int i=objects.size()-1; i>-1; i--)
     {
         objects[i].Draw(program);
     }
-    // player.Draw(program);
 }
 
 
@@ -252,7 +285,7 @@ int main(int argc, char *argv[])
     //setup code ...
     glViewport(0, 0, WIDTH_PIXELS, HEIGHT_PIXELS);
     
-    ShaderProgram program(RESOURCE_FOLDER"vertex_textured.glsl", RESOURCE_FOLDER"fragment_textured.glsl");
+    ShaderProgram program(RESOURCE_FOLDER"vertex.glsl", RESOURCE_FOLDER"fragment.glsl");
     
     projectionMatrix.setOrthoProjection(X_MIN, X_MAX, Y_MIN, Y_MAX, Z_MIN, Z_MAX);
     
@@ -269,27 +302,6 @@ int main(int argc, char *argv[])
             if (event.type == SDL_QUIT || event.type == SDL_WINDOWEVENT_CLOSE)
             {
                 done = true;
-            }
-            else if (event.type==SDL_KEYDOWN) // 'A' and 'D' keys control p1(left), 'SPACE' to jump
-            {
-                switch (event.key.keysym.sym)
-                {
-                    case SDLK_a:
-                        objects[0].acceleration.x=-1.5f;
-                        break;
-                    case SDLK_d:
-                        objects[0].acceleration.x=1.5f;
-                        break;
-                    case SDLK_SPACE:
-                        if (!Jumping) // checking bottom collsion was too buggy
-                        {
-                            objects[0].velocity.y=2.5f;
-                            Jumping=true;
-                        }
-                        break;
-                    default:
-                        break;
-                }
             }
         }
         float ticks = (float)SDL_GetTicks()/1000.0f;

@@ -14,6 +14,7 @@
 #define RESOURCE_FOLDER "NYUCodebase.app/Contents/Resources/"
 #endif
 #include <string>
+#include <math.h>
 
 GLuint Entity::LoadTexture(const char *filePath)
 {
@@ -41,6 +42,10 @@ void Entity::addTexture(std::string name)
 Entity::Entity(float Width, float Height, float x, float y)
 {
     modelMatrix = Matrix();
+    rotationMatrix = Matrix();
+    scaleMatrix = Matrix();
+    translationMatrix = Matrix();
+    
     length.x=(float)Width/2;
     length.y=(float)Height/2;
     position.x=x;
@@ -63,6 +68,10 @@ Entity::Entity(float Width, float Height, float x, float y)
     Debug=true;
     Active=true;
     Static=true;
+    
+    rotationAngle=0.0f;
+    scale.x=1.0f;
+    scale.y=1.0f;
 }
 
 void Entity::updateAll()
@@ -84,29 +93,37 @@ void Entity::Draw(ShaderProgram &program)
             length.x, length.y,
             (-1.0f*length.x), length.y,
             (-1.0f*length.x), (-1.0f*length.y),
-            length.x, length.y,
-            (-1.0f*length.x), (-1.0f*length.y),
+            // length.x, length.y,
+            // (-1.0f*length.x), (-1.0f*length.y),
             length.x, (-1.0f*length.y)
         };
         
-        float textureVertices[] =
-        {
-            textureRight, textureTop,
-            textureLeft, textureTop,
-            textureLeft, textureBottom,
-            textureRight, textureTop,
-            textureLeft, textureBottom,
-            textureRight, textureBottom
-        };
+        // float textureVertices[] =
+        // {
+        //     textureRight, textureTop,
+        //     textureLeft, textureTop,
+        //     textureLeft, textureBottom,
+        //     textureRight, textureTop,
+        //     textureLeft, textureBottom,
+        //     textureRight, textureBottom
+        // };
+        
+        translationMatrix.setPosition(position.x, position.y, 0.0f);
+        rotationMatrix.setRoll(rotationAngle);
+        scaleMatrix.setScale(scale.x, scale.y, 1.0f);
+        
         modelMatrix.identity();
-        modelMatrix.Translate(position.x, position.y, 0.0f);
+        modelMatrix = modelMatrix * scaleMatrix;
+        modelMatrix = modelMatrix * rotationMatrix;
+        modelMatrix = modelMatrix * translationMatrix;
+        
         glVertexAttribPointer(program.positionAttribute, 2, GL_FLOAT, false, 0, vertices);
         glEnableVertexAttribArray(program.positionAttribute);
-        glVertexAttribPointer(program.texCoordAttribute, 2, GL_FLOAT, false, 0, textureVertices);
-        glEnableVertexAttribArray(program.texCoordAttribute);
-        glDrawArrays(GL_TRIANGLES, 0, 6);
+        // glVertexAttribPointer(program.texCoordAttribute, 2, GL_FLOAT, false, 0, textureVertices);
+        // glEnableVertexAttribArray(program.texCoordAttribute);
+        glDrawArrays(GL_LINE_LOOP, 0, 4);
         glDisableVertexAttribArray(program.positionAttribute);
-        glDisableVertexAttribArray(program.texCoordAttribute);
+        // glDisableVertexAttribArray(program.texCoordAttribute);
     }
 }
 
@@ -170,7 +187,7 @@ float Entity::getXPenetration(Entity object)
 }
 
 
-std::vector<Entity> Entity::printText(Vector2 Position, std::string line, float changeSize)
+std::vector<Entity> Entity::printText(Vector Position, std::string line, float changeSize)
 {
     std::vector<Entity> entities;
     int LRoffset=8;
@@ -306,7 +323,8 @@ std::vector<Entity> Entity::printText(Vector2 Position, std::string line, float 
     return entities;
 }
 
-float Entity::lerp(float v0, float v1, float t) {
+float Entity::lerp(float v0, float v1, float t)
+{
     return (1.0-t)*v0 + t*v1;
 }
 
@@ -329,3 +347,83 @@ void Entity::ResetCollisions()
 };
 
 
+
+// Vector methods
+
+Vector::Vector()
+{
+    x=0.0f;
+    y=0.0f;
+    z=0.0f;
+}
+Vector::Vector(float X, float Y, float Z)
+{
+    x=X;
+    y=Y;
+    z=Z;
+}
+float Vector::length() const
+{
+    return sqrt((x*x) + (y*y));
+}
+
+void Vector::normalize()
+{
+    float len=length();
+    if (len==0)
+    {
+        x=0.0f;
+        y=0.0f;
+        z=0.0f;
+    }
+    else
+    {
+        x/=len;
+        y/=len;
+        z/=len;
+    }
+}
+
+//Vector Vector::operator * (const Vector &v)
+//{
+//    return Vector((x * v.x), (y * v.y), (z * v.z));
+//}
+
+void Entity::setVertices()
+{
+    translationMatrix.setPosition(position.x, position.y, 0.0f);
+    rotationMatrix.setRoll(rotationAngle);
+    scaleMatrix.setScale(scale.x, scale.y, 1.0f);
+    
+    modelMatrix.identity();
+    modelMatrix = modelMatrix * scaleMatrix;
+    modelMatrix = modelMatrix * rotationMatrix;
+    modelMatrix = modelMatrix * translationMatrix;
+
+    Vector topRight = Vector(length.x, length.y, 0.0f);
+    Vector topLeft = Vector((-1.0f*length.x), length.y, 0.0f);
+    Vector bottomRight = Vector(length.x, (-1.0f*length.y), 0.0f);
+    Vector bottomLeft = Vector((-1.0f*length.x), (-1.0f*length.y), 0.0f);
+    
+    topRight = topRight * modelMatrix;
+    topLeft = topLeft * modelMatrix;
+    bottomRight = bottomRight * modelMatrix;
+    bottomLeft = bottomLeft * modelMatrix;
+
+    vertices.clear();
+    
+    vertices.push_back(topRight);
+    vertices.push_back(topLeft);
+    vertices.push_back(bottomRight);
+    vertices.push_back(bottomLeft);
+}
+
+Vector Vector::operator * (const Matrix &mat) const
+{
+    Vector temp = Vector();
+    float vec [4] = {x, y, z, 1.0f};
+    temp.x = (mat.m[0][0] * vec[0]) + (mat.m[1][0] * vec[1]) + (mat.m[2][0] * vec[2]) + (mat.m[3][0] * vec[3]);
+    temp.y = (mat.m[0][1] * vec[0]) + (mat.m[1][1] * vec[1]) + (mat.m[2][1] * vec[2]) + (mat.m[3][1] * vec[3]);
+    temp.z = (mat.m[0][2] * vec[0]) + (mat.m[1][2] * vec[1]) + (mat.m[2][2] * vec[2]) + (mat.m[3][2] * vec[3]);
+    return temp;
+}
