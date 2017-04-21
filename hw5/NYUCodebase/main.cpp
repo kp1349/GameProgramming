@@ -305,6 +305,10 @@ int main(int argc, char *argv[])
         SDL_GL_SwapWindow(displayWindow);
     }
     
+    Mix_FreeChunk(laser);
+    Mix_FreeChunk(explosion);
+    Mix_FreeMusic(music);
     SDL_Quit();
+    
     return 0;
 }
