@@ -52,12 +52,10 @@ SDL_Window* displayWindow;
 
 //=============AUDIO
 int x = Mix_OpenAudio( 44100, MIX_DEFAULT_FORMAT, 2, 4096 );
-//Mix_Chunk *laser = Mix_LoadWAV("beep.wav");
-//Mix_Chunk *explosion = Mix_LoadWAV("explosion.wav");
 Mix_Music *music = Mix_LoadMUS("music.mp3");
 Mix_Chunk *loss = Mix_LoadWAV("loss.wav");
 Mix_Chunk *win = Mix_LoadWAV("win.wav");
-//Mix_PlayChannel(-1, laser, 0);
+Mix_Chunk *jump = Mix_LoadWAV("jump.wav");
 
 Entity* player;
 int playerNdx;
@@ -550,43 +548,40 @@ void Render(ShaderProgram &program)
             for (int i=0; i<titleQuit.size(); i++) {
                 titleQuit[i].Draw(program);    //BOTTOM PROMPT
             }
+            program.setLightPosition(0.0f, 0.0f);
             break;
+        
         case dying:
-        case winning:
         case level:
             for (int i=(int)objects.size()-1; i>-1; i--) //SO THAT THE PLAYER IS RENDERED IN FRONT
             {
                 objects[i].Draw(program);
             }
+            program.setLightPosition(startPostionX, startPositionY);
+            break;
+        case winning:
+            for (int i=(int)objects.size()-1; i>-1; i--) //SO THAT THE PLAYER IS RENDERED IN FRONT
+            {
+                objects[i].Draw(program);
+            }
+            program.setLightPosition(objects[exitNdx].position.x, objects[exitNdx].position.y);
             break;
         case gameLoss:
             viewMatrix.identity();
             for (int i=0; i<gameOver.size(); i++) {
                 gameOver[i].Draw(program);    //BOTTOM PROMPT
             }
+            program.setLightPosition(0.0f, 0.0f);
             break;
         case gameWin:
             viewMatrix.identity();
             for (int i=0; i<winner.size(); i++) {
                 winner[i].Draw(program);    //BOTTOM PROMPT
             }
+            program.setLightPosition(0.0f, 0.0f);
             break;
     }
 }
-
-//switch (state)
-//{
-//    case titleScreen:
-//        break;
-//    case dying:
-//    case winning:
-//    case level:
-//        break;
-//    case gameLoss:
-//        break;
-//    case gameWin:
-//        break;
-//}
 
 int main(int argc, char *argv[])
 {
@@ -649,6 +644,7 @@ int main(int argc, char *argv[])
                     if(!Jumping)
                     {
                         objects[playerNdx].velocity.y=2.0f;
+                        Mix_PlayChannel(-1, jump, 0);
                         Jumping=true;
                     }
                 }
@@ -687,9 +683,13 @@ int main(int argc, char *argv[])
                 glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
                 break;
             case dying:
+                glClearColor(1.0f, 0.0f, 0.0f, 1.0f);
+                break;
             case winning:
-            case level:
                 glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
+                break;
+            case level:
+                glClearColor(0.7f, 0.7f, 0.7f, 1.0f);
                 break;
             case gameLoss:
                 glClearColor(1.0f, 0.0f, 0.0f, 1.0f);
@@ -702,6 +702,7 @@ int main(int argc, char *argv[])
         
         program.setProjectionMatrix(projectionMatrix);
         program.setViewMatrix(viewMatrix);
+//        program.setLightPosition(0.0f, 0.0f);
         Render(program);
         
         SDL_GL_SwapWindow(displayWindow);

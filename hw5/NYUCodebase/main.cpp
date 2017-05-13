@@ -79,6 +79,9 @@ void shootBullet() {
 
 void Setup() // CREATE EVERYTHING
 {
+    
+    
+    
     // SET UP PLAYER 1
     player1.addTexture("sheet.png");
     player1.CalcTextureCoords(1024, 1024, 98, 75, 325, 0);

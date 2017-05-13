@@ -19,6 +19,8 @@ class ShaderProgram {
         void setProjectionMatrix(const Matrix &matrix);
         void setViewMatrix(const Matrix &matrix);
     
+        void setLightPosition(const float x, const float y);
+    
         GLuint loadShaderFromString(const std::string &shaderContents, GLenum type);
         GLuint loadShaderFromFile(const std::string &shaderFile, GLenum type);
     
@@ -33,4 +35,6 @@ class ShaderProgram {
     
         GLuint vertexShader;
         GLuint fragmentShader;
+    
+        GLuint lighting;
 };

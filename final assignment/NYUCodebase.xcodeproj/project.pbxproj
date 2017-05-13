@@ -21,6 +21,7 @@
 		6DEF23C21B96CC2600BCE792 /* Matrix.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 6DEF23BC1B96CC2600BCE792 /* Matrix.cpp */; };
 		6DEF23C31B96CC2600BCE792 /* ShaderProgram.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 6DEF23BE1B96CC2600BCE792 /* ShaderProgram.cpp */; };
 		6DEF23C41B96CC2600BCE792 /* vertex.glsl in Resources */ = {isa = PBXBuildFile; fileRef = 6DEF23C01B96CC2600BCE792 /* vertex.glsl */; };
+		A6445DBE1EC79514008D3D64 /* jump.wav in Resources */ = {isa = PBXBuildFile; fileRef = A6445DBD1EC79514008D3D64 /* jump.wav */; };
 		A6603ABF1EC62B4C009408B1 /* level 1.txt in Resources */ = {isa = PBXBuildFile; fileRef = A6603ABE1EC62B4C009408B1 /* level 1.txt */; };
 		A6603AC31EC64149009408B1 /* spritesheet_rgba.png in Resources */ = {isa = PBXBuildFile; fileRef = A6603AC21EC64149009408B1 /* spritesheet_rgba.png */; };
 		A6AFC7881EC6C4D900685867 /* level 2.txt in Resources */ = {isa = PBXBuildFile; fileRef = A6AFC7871EC6C4D900685867 /* level 2.txt */; };
@@ -57,6 +58,7 @@
 		6DEF23BE1B96CC2600BCE792 /* ShaderProgram.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = ShaderProgram.cpp; sourceTree = "<group>"; };
 		6DEF23BF1B96CC2600BCE792 /* ShaderProgram.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ShaderProgram.h; sourceTree = "<group>"; };
 		6DEF23C01B96CC2600BCE792 /* vertex.glsl */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = vertex.glsl; sourceTree = "<group>"; };
+		A6445DBD1EC79514008D3D64 /* jump.wav */ = {isa = PBXFileReference; lastKnownFileType = audio.wav; path = jump.wav; sourceTree = "<group>"; };
 		A6603ABE1EC62B4C009408B1 /* level 1.txt */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = "level 1.txt"; sourceTree = "<group>"; };
 		A6603AC21EC64149009408B1 /* spritesheet_rgba.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = spritesheet_rgba.png; sourceTree = "<group>"; };
 		A6AFC7871EC6C4D900685867 /* level 2.txt */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = "level 2.txt"; sourceTree = "<group>"; };
@@ -168,6 +170,7 @@
 		6D5A86E119AE5CAA0066C1FD /* Code */ = {
 			isa = PBXGroup;
 			children = (
+				A6445DBD1EC79514008D3D64 /* jump.wav */,
 				A6AFC7911EC6DBC100685867 /* music.mp3 */,
 				A6AFC78F1EC6DAFC00685867 /* win.wav */,
 				A6AFC78D1EC6DA7D00685867 /* loss.wav */,
@@ -245,6 +248,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				A6445DBE1EC79514008D3D64 /* jump.wav in Resources */,
 				A6AFC7881EC6C4D900685867 /* level 2.txt in Resources */,
 				6D5A86B819AE5C710066C1FD /* InfoPlist.strings in Resources */,
 				6DEF23C11B96CC2600BCE792 /* fragment.glsl in Resources */,

@@ -4,7 +4,7 @@
 #include "stb_image.h"
 #include <vector>
 
-enum EntityType {ENTITY_PLAYER, ENTITY_KEY, ENTITY_DOOR, ENTITY_GRASS};
+enum EntityType {ENTITY_PLAYER, ENTITY_ENEMY, ENTITY_ENVIRONMENT};
 
 struct Vector2
 {
